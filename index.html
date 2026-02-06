@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pending Barang App</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
+<style>
+/* --- BASE STYLING --- */
+body {
+  font-family: 'Inter', sans-serif; /* Font modern */
+  background: #0f172a; /* Base dark color */
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  color: #f8fafc;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+/* --- CONTAINER (GLASS EFFECT) --- */
+.container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+h2 {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(to right, #4ade80, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; /* Judul Gradient */
+}
+
+/* --- INPUTS --- */
+.input-group {
+  position: relative;
+  width: 100%;
+}
+
+input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: #1e293b;
+  color: white;
+  border: 1px solid #334155;
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+input:focus {
+  border-color: #22c55e;
+  background: #0f172a;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+input::placeholder {
+  color: #64748b;
+}
+
+/* --- DROPDOWN --- */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown div {
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #cbd5e1;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.dropdown div:hover {
+  background: #334155;
+  color: white;
+  padding-left: 20px;
+}
+
+/* --- SUBMIT BUTTON --- */
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+  margin-top: 8px;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+}
+
+.submit-btn:active {
+  transform: scale(0.98);
+}
+
+/* --- LIST ITEMS --- */
+#list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.item {
+  background: rgba(30, 41, 59, 0.6);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  animation: slideIn 0.3s ease-out;
+}
+
+.item:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(255,255,255,0.1);
+  transform: translateX(4px);
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  flex-grow: 1;
+}
+
+.item-sku {
+  font-weight: 600;
+  font-size: 15px;
+  color: #f1f5f9;
+}
+
+.item-qty {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Badge kecil untuk Qty */
+.qty-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Delete Button Modern */
+.delete-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 18px;
+  margin-left: 12px;
+}
+
+.delete-btn:hover {
+  background: #ef4444;
+  color: white;
+  transform: rotate(90deg); /* Sedikit animasi putar */
+}
+
+/* Animasi Masuk */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Kosong State */
+.empty-state {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  padding: 20px;
+  font-style: italic;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Pending Barang</h2>
+
+  <div class="input-group autocomplete">
+    <input id="sku" placeholder="Cari SKU / Scan Barcode..." autocomplete="off">
+    <div id="dropdown" class="dropdown"></div>
+  </div>
+
+  <input id="qty" type="number" step="1" min="1" placeholder="Jumlah Qty (Contoh: 12)">
+
+  <button class="submit-btn" onclick="submitItem()">Simpan Barang</button>
+
+  <div id="list">
+    </div>
+
+</div>
+
+<script type="module">
+  // Import dari file terpisah
+  import { firebaseConfig } from './config.js'; // <-- Panggil file tadi
+  
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, ... } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // Gunakan config yang sudah di-import
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // --- 1. TOAST CONFIGURATION (Notifikasi Kecil di Pojok) ---
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    background: '#1e293b',
+    color: '#fff',
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer)
+      toast.addEventListener('mouseleave', Swal.resumeTimer)
+    }
+  });
+
+  // --- 2. REALTIME LIST ---
+  const q = query(
+    collection(db,"pending_items"),
+    orderBy("createdAt","desc"),
+    limit(50)
+  );
+
+  onSnapshot(q, (snap) => {
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    if (snap.empty) {
+      list.innerHTML = '<div class="empty-state">Belum ada data pending.</div>';
+      return;
+    }
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      const id = doc.id;
+
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div class="item-info" onclick="editQty('${id}', ${d.qty}, '${d.sku}')" title="Ketuk untuk ubah Qty">
+          <span class="item-sku">${d.sku}</span>
+          <span class="item-qty">
+             <span class="qty-badge">${d.qty}</span> pcs
+          </span>
+        </div>
+        <button class="delete-btn" onclick="deleteItem('${id}')">
+          &times;
+        </button>
+      `;
+      list.appendChild(div);
+    });
+  });
+
+  // --- 3. AUTOCOMPLETE LOGIC ---
+  const skuInput = document.getElementById("sku");
+  const dropdown = document.getElementById("dropdown");
+  let typingTimer;
+
+  skuInput.addEventListener("input", () => {
+    clearTimeout(typingTimer);
+    const val = skuInput.value;
+    if(!val) { dropdown.classList.remove('show'); return; }
+    typingTimer = setTimeout(searchSKU, 300);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!skuInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.remove("show");
+    }
+  });
+
+  async function searchSKU(){
+    const val = skuInput.value.toUpperCase();
+    dropdown.innerHTML = "";
+    if(val.length < 2) { dropdown.classList.remove("show"); return; }
+
+    const q = query(collection(db,"master_sku"), where("sku",">=",val), where("sku","<=",val + '\uf8ff'), limit(5));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      dropdown.classList.add("show");
+      snap.forEach(doc => {
+        const div = document.createElement("div");
+        div.innerText = doc.data().sku;
+        div.onclick = () => {
+          skuInput.value = doc.data().sku;
+          dropdown.classList.remove("show");
+          document.getElementById("qty").focus();
+        };
+        dropdown.appendChild(div);
+      });
+    } else {
+      dropdown.classList.remove("show");
+    }
+  }
+
+  // --- 4. SUBMIT ITEM (Modern Alert) ---
+  window.submitItem = async () => {
+    const sku = skuInput.value;
+    const qtyInput = document.getElementById("qty");
+    const qty = Number(qtyInput.value);
+
+    if(!sku || !qty){
+      // Ganti Alert Biasa dengan Swal Error
+      Swal.fire({
+        icon: 'warning',
+        title: 'Oops...',
+        text: 'Mohon isi SKU dan Qty dengan benar!',
+        background: '#1e293b',
+        color: '#fff'
+      });
+      return;
+    }
+
+    try {
+      await addDoc(collection(db,"pending_items"), {
+        sku, qty, createdAt: serverTimestamp()
+      });
+      
+      // Notifikasi Sukses (Toast)
+      Toast.fire({
+        icon: 'success',
+        title: 'Barang berhasil disimpan'
+      });
+
+      skuInput.value = "";
+      qtyInput.value = "";
+      dropdown.classList.remove("show");
+      skuInput.focus();
+      
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menyimpan data', background: '#1e293b', color: '#fff' });
+    }
+  };
+
+  document.getElementById("qty").addEventListener("keypress", (e) => {
+    if(e.key === "Enter") window.submitItem();
+  });
+
+  // --- 5. DELETE ITEM (Modern Confirm) ---
+  window.deleteItem = async (id) => {
+    // Ganti Confirm Biasa dengan Swal Confirm
+    const result = await Swal.fire({
+      title: 'Hapus Item?',
+      text: "Data tidak bisa dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#334155',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      background: '#1e293b',
+      color: '#fff'
+    });
+
+    if (result.isConfirmed) {
+      await deleteDoc(doc(db, "pending_items", id));
+      Toast.fire({ icon: 'success', title: 'Item dihapus' });
+    }
+  };
+
+  // --- 6. EDIT QTY (Modern Input) ---
+  window.editQty = async (id, oldQty, sku) => {
+    // Ganti Prompt Biasa dengan Swal Input
+    const { value: newQty } = await Swal.fire({
+      title: `Edit Qty: ${sku}`,
+      input: 'number',
+      inputValue: oldQty,
+      background: '#1e293b',
+      color: '#fff',
+      confirmButtonColor: '#22c55e',
+      confirmButtonText: 'Update',
+      showCancelButton: true,
+      inputAttributes: { min: 1, step: 1 }
+    });
+
+    if (newQty && newQty != oldQty) {
+      await updateDoc(doc(db, "pending_items", id), { qty: Number(newQty) });
+      Toast.fire({ icon: 'success', title: 'Qty berhasil diupdate' });
+    }
+  };
+
+</script>
+</body>
+</html>
