@@ -321,6 +321,49 @@ input::placeholder {
   background: #ef4444;
   color: white;
 }
+
+/* Container agar Qty dan Checkbox sejajar */
+.qty-container {
+  display: flex;
+  gap: 12px;
+  align-items: stretch; /* Tinggi sama */
+}
+
+/* Input Qty jadi flex-grow agar mengisi ruang sisa */
+.qty-container input[type="number"] {
+  flex: 1;
+}
+
+/* Style Checkbox Buffer ala Tombol */
+.buffer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 0 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* Saat dicentang (Active) */
+.buffer-toggle:has(input:checked) {
+  background: rgba(59, 130, 246, 0.2); /* Biru transparan */
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Sembunyikan checkbox asli biar rapi, kita pakai labelnya saja */
+.buffer-toggle input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
 </style>
 </head>
 
@@ -334,7 +377,16 @@ input::placeholder {
     <div id="dropdown" class="dropdown"></div>
   </div>
 
-  <input id="qty" type="number" step="1" min="1" placeholder="Jumlah Qty (Contoh: 12)">
+ <div class="qty-container">
+  
+  <input id="qty" type="number" step="1" min="1" placeholder="Qty (Contoh: 12)">
+
+  <label class="buffer-toggle">
+    <input type="checkbox" id="isBuffer">
+    <span>BUFFER</span>
+  </label>
+
+</div>
 
   <button class="submit-btn" onclick="submitItem()">Simpan Barang</button>
 
@@ -635,6 +687,81 @@ input::placeholder {
         // Fallback kalau error
         alert("Gagal copy otomatis. Teks: " + text);
     });
+  };
+  
+  // --- A. LOGIC UI BUFFER (Tambahkan di bagian setup event listener) ---
+  const bufferCheckbox = document.getElementById("isBuffer");
+  const qtyInput = document.getElementById("qty");
+
+  // Kalau Buffer dicentang, matikan input angka
+  bufferCheckbox.addEventListener("change", () => {
+    if (bufferCheckbox.checked) {
+        qtyInput.value = "";       // Kosongkan angka
+        qtyInput.disabled = true;  // Matikan input
+        qtyInput.placeholder = "Mode Buffer Aktif";
+        qtyInput.style.opacity = "0.5";
+    } else {
+        qtyInput.disabled = false; // Nyalakan input
+        qtyInput.placeholder = "Qty (Contoh: 12)";
+        qtyInput.style.opacity = "1";
+        qtyInput.focus();
+    }
+  });
+
+
+  // --- B. UPDATE FUNGSI SUBMIT (Ganti window.submitItem yang lama) ---
+  window.submitItem = async () => {
+    const sku = skuInput.value;
+    
+    // Cek apakah mode buffer atau angka biasa?
+    let finalQty;
+    
+    if (bufferCheckbox.checked) {
+        finalQty = "BUFFER"; // Kirim String
+    } else {
+        const val = qtyInput.value;
+        if (!val) {
+            Swal.fire({
+                icon: 'warning', title: 'Oops...', 
+                text: 'Isi Jumlah Qty atau centang BUFFER!',
+                background: '#1e293b', color: '#fff'
+            });
+            return;
+        }
+        finalQty = Number(val); // Kirim Number
+    }
+
+    if(!sku){
+        Swal.fire({ icon: 'warning', title: 'Oops...', text: 'SKU belum diisi!', background: '#1e293b', color: '#fff'});
+        return;
+    }
+
+    try {
+      await addDoc(collection(db,"pending_items"), {
+        sku: sku,
+        qty: finalQty, // Bisa String "BUFFER" atau Number
+        createdAt: serverTimestamp()
+      });
+      
+      Toast.fire({ icon: 'success', title: 'Barang berhasil disimpan' });
+
+      // Reset Form
+      skuInput.value = "";
+      
+      // Reset Buffer & Qty
+      bufferCheckbox.checked = false;
+      qtyInput.disabled = false;
+      qtyInput.value = "";
+      qtyInput.placeholder = "Qty (Contoh: 12)";
+      qtyInput.style.opacity = "1";
+      
+      dropdown.classList.remove("show");
+      skuInput.focus();
+      
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menyimpan data' });
+    }
   };
 </script>
 </body>
