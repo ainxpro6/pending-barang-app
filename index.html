@@ -245,6 +245,58 @@ input::placeholder {
   padding: 20px;
   font-style: italic;
 }
+
+/* Container untuk tombol-tombol agar rapi */
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Jarak antar tombol copy dan delete */
+}
+
+/* Tombol Copy */
+.copy-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(59, 130, 246, 0.1); /* Biru transparan */
+  color: #3b82f6;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.copy-btn:hover {
+  background: #3b82f6;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.secondary-btn:hover {
+  background: #334155;
+  color: white;
+  border-color: #475569;
+}
 </style>
 </head>
 
@@ -262,19 +314,32 @@ input::placeholder {
 
   <button class="submit-btn" onclick="submitItem()">Simpan Barang</button>
 
-  <div id="list">
-    </div>
+  <button id="copyAllBtn" class="secondary-btn" style="margin-bottom: 12px; display: none;">
+  📋 Copy Semua List
+</button>
+
+<div id="list">
+  </div>
 
 </div>
 
 <script type="module">
-  // Import dari file terpisah
-  import { firebaseConfig } from './config.js'; // <-- Panggil file tadi
-  
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, ... } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    getFirestore, collection, addDoc, query, orderBy, onSnapshot,
+    limit, where, getDocs, serverTimestamp, deleteDoc, doc, updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Gunakan config yang sudah di-import
+  const firebaseConfig = {
+    apiKey: "AIzaSyCQ5RNkhmmjBoEdFXi3CVRGzP8DXWEGx3Q",
+    authDomain: "updatepending-df0da.firebaseapp.com",
+    projectId: "updatepending-df0da",
+    storageBucket: "updatepending-df0da.firebasestorage.app",
+    messagingSenderId: "639417251832",
+    appId: "1:639417251832:web:2a85b55bc042dd17f4480d",
+    measurementId: "G-472359ZVFX"
+  };
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
@@ -300,33 +365,68 @@ input::placeholder {
     limit(50)
   );
 
+  // Variabel global untuk menyimpan data sementara agar bisa di-copy
+  let allDataText = ""; 
+
+  // --- 1. UPDATE ONSNAPSHOT ---
   onSnapshot(q, (snap) => {
     const list = document.getElementById("list");
+    const copyBtn = document.getElementById("copyAllBtn");
+    
     list.innerHTML = "";
+    allDataText = ""; // Reset text
 
     if (snap.empty) {
       list.innerHTML = '<div class="empty-state">Belum ada data pending.</div>';
+      copyBtn.style.display = "none"; // Sembunyikan tombol copy
       return;
     }
+
+    // Tampilkan tombol copy karena ada data
+    copyBtn.style.display = "block";
+    
+    // Header text (Opsional, misal tanggal hari ini)
+    const today = new Date().toLocaleDateString('id-ID');
+    allDataText += `*PENDING BARANG (${today})*\n------------------\n`;
 
     snap.forEach(doc => {
       const d = doc.data();
       const id = doc.id;
 
+      // 1. Masukkan ke variabel text gabungan (Format WhatsApp)
+      allDataText += `• ${d.sku} : ${d.qty} pcs\n`;
+
+      // 2. Render HTML List (Kode lama kamu)
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
-        <div class="item-info" onclick="editQty('${id}', ${d.qty}, '${d.sku}')" title="Ketuk untuk ubah Qty">
+        <div class="item-info" onclick="editQty('${id}', ${d.qty}, '${d.sku}')">
           <span class="item-sku">${d.sku}</span>
           <span class="item-qty">
              <span class="qty-badge">${d.qty}</span> pcs
           </span>
         </div>
-        <button class="delete-btn" onclick="deleteItem('${id}')">
-          &times;
-        </button>
+        <button class="delete-btn" onclick="deleteItem('${id}')">&times;</button>
       `;
       list.appendChild(div);
+    });
+    
+    // Footer text
+    allDataText += `------------------\nTotal Item: ${snap.size}`;
+  });
+
+  // --- 2. LOGIC TOMBOL COPY ALL ---
+  document.getElementById("copyAllBtn").addEventListener("click", () => {
+    if (!allDataText) return;
+
+    navigator.clipboard.writeText(allDataText).then(() => {
+        // Pakai SweetAlert / Toast kamu
+        Toast.fire({
+            icon: 'success',
+            title: 'Semua list berhasil disalin!'
+        });
+    }).catch(err => {
+        alert("Gagal copy");
     });
   });
 
@@ -460,6 +560,23 @@ input::placeholder {
     }
   };
 
+// --- COPY FUNCTION ---
+  window.copyText = (text) => {
+    // 1. Copy ke clipboard
+    navigator.clipboard.writeText(text).then(() => {
+        
+        // 2. Tampilkan notifikasi sukses (Pakai Toast yang sudah ada)
+        Toast.fire({
+            icon: 'success',
+            title: 'Teks disalin!'
+        });
+
+    }).catch(err => {
+        console.error('Gagal copy', err);
+        // Fallback kalau error
+        alert("Gagal copy otomatis. Teks: " + text);
+    });
+  };
 </script>
 </body>
 </html>
